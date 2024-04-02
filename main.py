@@ -5,7 +5,7 @@ import os
 import time
 
 from llm_autoeval.table import make_final_table, make_table
-from llm_autoeval.upload import upload_to_github_gist
+from llm_autoeval.upload import upload_to_github_gist, upload_to_hf_model_repo
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -90,7 +90,7 @@ def _make_eqbench_summary(directory: str, elapsed_time: float) -> str:
     return summary
 
 
-def main(directory: str, elapsed_time: float) -> None:
+def main(directory: str, elapsed_time: float, publish_to: str) -> None:
     # Tasks
     if BENCHMARK == "openllm" or BENCHMARK == "nous":
         summary = _make_autoeval_summary(directory, elapsed_time)
@@ -107,13 +107,20 @@ def main(directory: str, elapsed_time: float) -> None:
     convert = time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
     summary += f"\n\nElapsed time: {convert}"
 
-    # Upload to GitHub Gist
-    upload_to_github_gist(
-        summary,
-        f"{MODEL_ID.split('/')[-1]}-{BENCHMARK.capitalize()}.md",
-        GITHUB_API_TOKEN,
-    )
+    publish_to = os.environ.get("PUBLISH_TO", "github")
 
+    if publish_to == "github":
+        # Upload to GitHub Gist
+        upload_to_github_gist(
+            summary,
+            f"{MODEL_ID.split('/')[-1]}-{BENCHMARK.capitalize()}.md",
+            GITHUB_API_TOKEN,
+        )
+    elif publish_to == "hf_hub":
+        upload_to_hf_model_repo(
+            summary,
+            MODEL_ID,
+        )
 
 if __name__ == "__main__":
     # Create the parser
@@ -135,4 +142,4 @@ if __name__ == "__main__":
         raise ValueError(f"The directory {args.directory} does not exist.")
 
     # Call the main function with the directory argument
-    main(args.directory, args.elapsed_time)
+    main(directory=args.directory, elapsed_time=args.elapsed_time)

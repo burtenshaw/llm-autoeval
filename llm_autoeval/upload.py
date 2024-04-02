@@ -1,7 +1,7 @@
 import os
-
 import requests
 
+from huggingface_hub import ModelCard
 
 def upload_to_github_gist(text, gist_name, gh_token):
     # Create the gist content
@@ -31,3 +31,14 @@ def upload_to_github_gist(text, gist_name, gh_token):
         print(
             f"Failed to upload gist. Status code: {response.status_code}. Response: {response.text}"
         )
+
+
+def upload_to_hf_model_repo(text, model_id):
+    hf_token = os.getenv("HF_TOKEN")
+    model_name = model_id.split("/")[-1]
+    
+    # Create model card
+    card = ModelCard.load(model_id)
+    card.content += "--- \n" + text
+    card.save(f'{model_name}/README.md')
+    card.push_to_hub(token=hf_token)
